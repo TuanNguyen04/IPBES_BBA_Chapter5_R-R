@@ -62,6 +62,6 @@ snowball search (PBES_BBA_Ch6_Fin_snowball) as well as a search term based searc
 
 ## Reports
 
-- [Snowball Report](IPBES_BBA_Ch5_R&R_snowball.html)
+- [Snowball Report](IPBES_BBA_Ch5_RR_snowball.html)
 
 <!-- - [Keyword Report](IPBES_BBA_Ch6_Fin_keyword.html) -->
