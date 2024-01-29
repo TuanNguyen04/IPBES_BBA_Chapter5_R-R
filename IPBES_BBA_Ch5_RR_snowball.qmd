@@ -1,0 +1,608 @@
+---
+title: 'Snowball sampling BBA Chapter 5'
+subtitle: 'Data Management Report'
+author:
+  - name: 
+        family: Krug
+        given: Rainer M.
+    id: rmk
+    orcid: 0000-0002-7490-0066
+    email: Rainer@krugs.de
+    affiliation: 
+      - name: University of Zurich
+        city: Zurich
+        state: RI
+        url: www.uzh.ch
+    roles: [author, editor]
+  - name: 
+        family: Nguyen
+        given: Tuan
+    id: rmk
+    orcid: 0000-0003-3495-178X
+    email: tuan.nguyen@uhasselt.be
+    affiliation: 
+      - name: Hasselt University
+        city: Hasselt
+        url: www.uhasselt.be
+    roles: [author, editor]
+abstract: > 
+  A snowball literature using [OpenAlex](https://openalex.org/) will be conducted
+  and all steps documented. The literature search is for Section 5.1 of Chapter 5 of the IPBES 
+  Business and Biodiversity assessment.
+# keywords:
+#   - aaaaa
+#   - bbbbb
+license: "CC BY"
+copyright: 
+  holder: No idea
+  year: 2023
+citation: 
+  type: report
+  container-title: IPBES Data Management Report
+  doi: 99.99.99999999
+date: '`r Sys.Date()`'
+doi: 99.99.99999999
+version: 0.1.0
+
+format:
+    html:
+        toc: true
+        toc-depth: 4
+        toc_expand: true
+        embed-resources: true
+        code-fold: true
+        code-summary: 'Show the code'
+        grid:
+            sidebar-width: 0px
+            body-width: 4000px
+            margin-width: 200px
+            gutter-width: 1.5rem   
+params:
+  keypapers: "./input/keypapers_snowball.json"
+---
+
+[![DOI](https://zenodo.org/badge/DOI/9999999999.svg)](https://doi.org/9999999999) [![GitHub release](https://img.shields.io/github/release/IPBES-Data/IPBES_BBA_Ch6_fin.svg)](https://github.com/IPBES-Data/IPBES_BBA_Ch6_fin/releases/latest) [![GitHub commits since latest release](https://img.shields.io/github/commits-since/IPBES-Data/IPBES_BBA_Ch6_fin/latest)](https://github.com/IPBES-Data/IPBES_BBA_Ch6_fin/commits/main) [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+
+```{r}
+#| label: setup
+#| include: false
+
+if (!exists("params")) {
+    params <- rmarkdown::yaml_front_matter("~/Documents_Local/git/IPBES_data_tsu/Assessments/Business/IPBES_BBA_Ch5_search/IPBES_BBA_Ch5_RR_snowball.qmd")$params
+}
+
+build <- as.integer(readLines("buildNo"))
+build <- build + 1
+writeLines(as.character(build), "buildNo")
+
+## Now specific code
+
+library(openalexR)
+library(dplyr)
+if (!require("IPBES.R")) {
+    install.packages(
+        "IPBES.R",
+        repos = c("https://ipbes-data.r-universe.dev", "https://cloud.r-project.org")
+    )
+    library(IPBES.R)
+}
+library(networkD3)
+```
+
+## Working Title
+
+Literature search for BBA Chapter 5 Section 5.1
+
+## Code repo
+
+[IPBES_BBA_Ch5_R&R](https://github.com/TuanNguyen04/IPBES_BBA_Chapter5_R-R)
+
+## Version `r rmarkdown::metadata$version` Build No `r build`
+
+## Read Key-paper
+
+```{r}
+#| label: read_key_paper
+#|
+
+kp <- jsonlite::read_json(params$keypapers)
+
+dois <- sapply(
+    kp,
+    function(x) {
+        x$DOI
+    }
+) |>
+    unlist() |>
+    unique() |>
+    as.character()
+
+dois <- dois[!is.null(dois)]
+```
+
+Of the **`r length(kp)`** keypapers, **`r length(dois[!is.na(dois)])`** have a DOI and can be used for the further search.
+
+## Searches
+
+Searches are conducted with the [OpenAlex](https://openalex.org) API. The API is documented [here](https://openalex.org/api-docs/).
+
+### Get key_works
+
+```{r}
+#| label: openalex_key_works
+#|
+
+fn <- file.path("data", "key_works.rds")
+if (!file.exists(fn)) {
+    key_works <- oa_fetch(
+        entity = "works",
+        doi = dois,
+        verbose = FALSE
+    )
+    saveRDS(key_works, fn)
+} else {
+    key_works <- readRDS(fn)
+}
+
+key_works_cit <- IPBES.R::abbreviate_authors(key_works)
+```
+
+### Setup [OpenAlex](https://openalex.org) usage and do snowball serarch
+
+```{r}
+#| label: openalex_snowball
+#|
+
+ids <- openalexR:::shorten_oaid(key_works$id)
+
+fn <- file.path("data", "snowball.rds")
+if (file.exists(fn)) {
+    snowball <- readRDS(fn)
+} else {
+    snowball <- oa_snowball(
+        identifier = ids,
+        verbose = FALSE
+    )
+    saveRDS(snowball, fn)
+}
+
+flat_snow <- snowball2df(snowball) |>
+    tibble::as_tibble()
+
+
+```
+
+### Supplemented edges between all papers
+
+```{r}
+#| label: openalex_supplemented
+#|
+
+fn <- file.path("data", "snowball_supplemented.rds")
+if (file.exists(fn)) {
+    snowball_supplemented <- readRDS(fn)
+} else {
+    new_edges <- tibble(
+        from = character(0),
+        to = character(0)
+    )
+
+    works <- snowball$nodes$id
+
+    for (i in 1:nrow(snowball$nodes)) {
+        from <- works[[i]]
+        to <- gsub("https://openalex.org/", "", snowball$nodes$referenced_works[[i]])
+        to_in_works <- to[to %in% works]
+        if (length(to_in_works) > 0) {
+            new_edges <- add_row(
+                new_edges,
+                tibble(
+                    from = from,
+                    to = to_in_works
+                )
+            )
+        }
+    }
+
+    snowball_supplemented <- snowball
+    snowball_supplemented$edges <- add_row(snowball_supplemented$edges, new_edges) |>
+        distinct()
+
+    saveRDS(snowball_supplemented, fn)
+}
+```
+
+## Results
+
+### Number of papers cited by keypapers
+
+```{r}
+#| label: openalex_keypaper_cited_citing
+
+snowball$edges |>
+    filter(from %in% names(key_works_cit)) |>
+    unique() |>
+    mutate(
+        cit = unlist(key_works_cit[from])
+    ) |>
+    select(cit) |>
+    table() |>
+    as.data.frame() |>
+    arrange(desc(Freq)) |>
+    knitr::kable(
+        col.names = c("Key paper", "Number of papers"),
+        caption = "Number of papers cited by Keypapers in the snowball search"
+    )
+
+
+snowball$edges |>
+    filter(to %in% names(key_works_cit)) |>
+    unique() |>
+    mutate(
+        cit = unlist(key_works_cit[to]),
+    ) |>
+    select(cit) |>
+    table() |>
+    as.data.frame() |>
+    arrange(desc(Freq)) |>
+    knitr::kable(
+        col.names = c("Key paper", "Number of papers"),
+        caption = "No of papers citing the Keypapers in the snowball search"
+    )
+```
+
+### Export snowball as Excel file
+
+```{r}
+#| label: openalex_excel
+#|
+
+fn <- file.path(".", "data", "snowball_excel.xlsx")
+if (!file.exists(fn)) {
+    IPBES.R::to_xlsx(snowball, fn)
+}
+```
+
+To download the Excsl file with all references, plese [click here](data/snowball_excel.xlsx).
+
+The column are: (the Concept columns are not that relevant at the moment)
+
+-   **id**: internal id fromOpenAlex
+-   **author**: authors of the paper
+-   **publication_year**: publication year
+-   **title**: title of the paper
+-   **doi**: doi of the paper
+-   **no_referenced_works**: number of references in the paper which are also in OpenAlex
+-   **cited_global**: Number of times the paper has been cited
+-   **cited_global_per_year**: standardised number of times cirted (cited_global / number of years published)
+-   **no_connections**: number of connections in the rgaph, i.e. either cited or citing a paper in the snowball corpus
+-   **concepts_l0**: Concept 0. level assigned by OpenAlex
+-   **concepts_l1**: Concept 1. level assigned by OpenAlex
+-   **concepts_l2**: Concept 2. level assigned by OpenAlex
+-   **concepts_l3**: Concept 3. level assigned by OpenAlex
+-   **concepts_l4**: Concept 4. level assigned by OpenAlex
+-   **concepts_l5**: Concept 5. level assigned by OpenAlex
+-   **author_institute**: Institute of the authors
+-   **institute_country**: Country of the institute
+-   **abstract**: the abstract of the paper
+
+### Static Citation Network Graph
+
+#### Snowball Search
+
+```{r}
+#| label: openalex_graph
+#|
+
+name <- "snowball"
+if (
+    any(
+        !file.exists(
+            c(
+                file.path("figures", paste0(name, "_cited_by_count.png")),
+                file.path("figures", paste0(name, "_cited_by_count.pdf")),
+                file.path("figures", paste0(name, "_cited_by_count_by_year.png")),
+                file.path("figures", paste0(name, "_cited_by_count_by_year.pdf"))
+            )
+        )
+    )
+) {
+    snowball_p <- snowball
+
+    for  (i in seq_along(key_works_cit)) {
+        snowball_p$nodes$id[snowball_p$nodes$id %in% key_works_cit[[i]]["id"]] <- key_works_cit[[i]]["cit"]
+        snowball_p$edges$from[snowball_p$edges$from %in% key_works_cit[[i]]["id"]] <- key_works_cit[[i]]["cit"]
+        snowball_p$edges$to[snowball_p$edges$to %in% key_works_cit[[i]]["id"]] <- key_works_cit[[i]]["cit"]
+    }
+
+    IPBES.R::plot_snowball(snowball_p, name = name, path = "figures")
+    rm(snowball_p)
+}
+```
+
+![Cited by count](figures/snowball_cited_by_count_by_year.png)
+
+To download the highres graph, please [click here](figures/snowball_cited_by_count_by_year.pdf).
+
+#### Supplemented Snowball Search
+
+```{r}
+#| label: snowball_supplemented_graphs
+
+name <- "snowball_supplemented"
+if (
+    any(
+        !file.exists(
+            c(
+                file.path("figures", paste0(name, "_cited_by_count.png")),
+                file.path("figures", paste0(name, "_cited_by_count.pdf")),
+                file.path("figures", paste0(name, "_cited_by_count_by_year.png")),
+                file.path("figures", paste0(name, "_cited_by_count_by_year.pdf"))
+            )
+        )
+    )
+) {
+    snowball_supplemented$nodes$cited_by_count_by_year <- snowball_supplemented$nodes$cited_by_count / (2024 - snowball_supplemented$nodes$publication_year)
+
+    snowball_p <- snowball_supplemented
+
+    for  (i in seq_along(key_works_cit)) {
+        snowball_p$nodes$id[snowball_p$nodes$id %in% key_works_cit[[i]]["id"]] <- key_works_cit[[i]]["cit"]
+        snowball_p$edges$from[snowball_p$edges$from %in% key_works_cit[[i]]["id"]] <- key_works_cit[[i]]["cit"]
+        snowball_p$edges$to[snowball_p$edges$to %in% key_works_cit[[i]]["id"]] <- key_works_cit[[i]]["cit"]
+    }
+
+    IPBES.R::plot_snowball(snowball_p, name = name, path = "figures")
+    rm(snowball_p)
+}
+```
+
+![Supplemented Cited by count](figures/snowball_supplemented_cited_by_count_by_year.png)
+
+To download the highres graph, please [click here](figures/snowball_supplemented_cited_by_count_by_year.pdf).
+
+### Interactive Citation Network Graph
+
+The following interactions are possible:
+
+-   moving your mouse over a node, the title author and year of the paper is shown.
+-   clicking on a node will open the paper in a new tab.
+-   scrolling up and down with your scroll wheel zooms in and out
+-   clicking on the canvas and move the mouse will move the network
+-   clicking on a node and dragging it moves the node
+
+#### Snowball Search
+
+```{r}
+#| label: openalex_graph_interactive_snowball_cited_by_count
+#|
+
+fn <- file.path("figures", "snowball_cited_by_count_by_year.html")
+# if (file.exists(fn)) {
+#     htmltools::includeHTML(fn)
+# } else {
+IPBES.R::plot_snowball_interactive(
+    snowball = snowball,
+    key_works = key_works,
+    file = fn
+)
+# }
+```
+
+To open the interactive graph in a standalone window [click here](figures/snowball_cited_by_count_by_year.html){target="_blank"}.
+
+#### Supplemented Snowball Search
+
+```{r}
+#| label: openalex_graph_interactive_snowball_supplemented_cited_by_count
+
+
+# fn <- file.path("figures", "snowball_supplemented_cited_by_count.html")
+# if (file.exists(fn)) {
+#     htmltools::includeHTML(fn)
+# } else {
+IPBES.R::plot_snowball_interactive(
+    snowball = snowball_supplemented,
+    key_works = key_works,
+    file = fn
+)
+# }
+```
+
+To open the interactive graph in a standalone window [click here](figures/snowball_supplemented_cited_by_count.html){target="_blank"}.
+
+### Identification of references with more than one edge
+
+This is the number of connections (`connection_count)`of the paper (`id`)
+
+```{r}
+#| label: openalex_edgecount
+#|
+
+mult_edge <- flat_snow |>
+    select(id, connection_count) |>
+    filter(connection_count > 1) |>
+    arrange(desc(connection_count))
+
+links <- flat_snow |>
+    filter(id %in% mult_edge$id)
+
+links |>
+    select(id, display_name, publication_year, doi, connection_count) |>
+    arrange(desc(connection_count)) |>
+    knitr::kable()
+```
+
+### Identification of Concepts
+
+OpenAlex assigns all works concepts. The concepts are in hirarchical order, ranging from 0 to 3. The higher the number, the more specific the concept. The concepts are assigned to the paper (`id`)
+
+#### Level 0
+
+```{r}
+#| label: l0
+#|
+
+level <- 0
+fn <- file.path(".", "data", paste0("concepts_l", level, ".rds"))
+if (!file.exists(fn)) {
+    x <- lapply(
+        flat_snow[["concepts"]],
+        FUN = function(x) {
+            x[["display_name"]][x[["level"]] == level]
+        }
+    ) |>
+        unlist() |>
+        table() |>
+        as.data.frame() |>
+        arrange(desc(Freq))
+    names(x) <- c(paste0("l", level, "_concept"), "count")
+    saveRDS(x, fn)
+}
+
+fn |>
+    readRDS() |>
+    knitr::kable()
+```
+
+#### Level 1
+
+```{r}
+#| label: l1
+#|
+
+level <- 1
+fn <- file.path(".", "data", paste0("concepts_l", level, ".rds"))
+if (!file.exists(fn)) {
+    x <- lapply(
+        flat_snow[["concepts"]],
+        FUN = function(x) {
+            x[["display_name"]][x[["level"]] == level]
+        }
+    ) |>
+        unlist() |>
+        table() |>
+        as.data.frame() |>
+        arrange(desc(Freq))
+    names(x) <- c(paste0("l", level, "_concept"), "count")
+    saveRDS(x, fn)
+}
+
+fn |>
+    readRDS() |>
+    knitr::kable()
+```
+
+#### Level 2
+
+```{r}
+#| label: l2
+#|
+
+level <- 2
+fn <- file.path(".", "data", paste0("concepts_l", level, ".rds"))
+if (!file.exists(fn)) {
+    x <- lapply(
+        flat_snow[["concepts"]],
+        FUN = function(x) {
+            x[["display_name"]][x[["level"]] == level]
+        }
+    ) |>
+        unlist() |>
+        table() |>
+        as.data.frame() |>
+        arrange(desc(Freq))
+    names(x) <- c(paste0("l", level, "_concept"), "count")
+    saveRDS(x, fn)
+}
+
+fn |>
+    readRDS() |>
+    knitr::kable()
+```
+
+#### Level 3
+
+```{r}
+#| label: l3
+#|
+
+level <- 3
+fn <- file.path(".", "data", paste0("concepts_l", level, ".rds"))
+if (!file.exists(fn)) {
+    x <- lapply(
+        flat_snow[["concepts"]],
+        FUN = function(x) {
+            x[["display_name"]][x[["level"]] == level]
+        }
+    ) |>
+        unlist() |>
+        table() |>
+        as.data.frame() |>
+        arrange(desc(Freq))
+    names(x) <- c(paste0("l", level, "_concept"), "count")
+    saveRDS(x, fn)
+}
+
+fn |>
+    readRDS() |>
+    knitr::kable()
+```
+
+#### Level 4
+
+```{r}
+#| label: l4
+#|
+
+level <- 4
+fn <- file.path(".", "data", paste0("concepts_l", level, ".rds"))
+if (!file.exists(fn)) {
+    x <- lapply(
+        flat_snow[["concepts"]],
+        FUN = function(x) {
+            x[["display_name"]][x[["level"]] == level]
+        }
+    ) |>
+        unlist() |>
+        table() |>
+        as.data.frame() |>
+        arrange(desc(Freq))
+    names(x) <- c(paste0("l", level, "_concept"), "count")
+    saveRDS(x, fn)
+}
+
+fn |>
+    readRDS() |>
+    knitr::kable()
+```
+
+#### Level 5
+
+```{r}
+#| label: l5
+#|
+
+level <- 5
+fn <- file.path(".", "data", paste0("concepts_l", level, ".rds"))
+if (!file.exists(fn)) {
+    x <- lapply(
+        flat_snow[["concepts"]],
+        FUN = function(x) {
+            x[["display_name"]][x[["level"]] == level]
+        }
+    ) |>
+        unlist() |>
+        table() |>
+        as.data.frame() |>
+        arrange(desc(Freq))
+    names(x) <- c(paste0("l", level, "_concept"), "count")
+    saveRDS(x, fn)
+}
+
+fn |>
+    readRDS() |>
+    knitr::kable()
+```
+
+# Bibliographic
