@@ -1,4 +1,4 @@
-# Literature search Chapter 6 Finance Section
+# Literature search Chapter 5 Section 5.1 Roles & Responsibilities
 
 [![DOI](https://zenodo.org/badge/DOI/9999999999.svg)](https://doi.org/9999999999)
 [![GitHub release](https://img.shields.io/github/release/IPBES-Data/IPBES_BBA_Ch6_fin.svg)](https://github.com/IPBES-Data/IPBES_BBA_Ch6_fin/releases/latest)
@@ -15,20 +15,20 @@ Once finalised, the final repo will be published on Zenodo
 
 ## Metadata
 
-- **Project name**: Literature search for BBA Chapter 6 Finance Section
+- **Project name**: Literature search for Chapter 5 Section 5.1 Roles & Responsibilities
 - **Assessment**: Business and Biodiversity Assessment
-- **Chapter**: Chapter 6 Finance Section%
-- **Short Name**: IPBES_BBA_Ch6_fin
+- **Chapter**: Chapter 5 Section 5.1
+- **Short Name**: IPBES_BBA_Ch5_R&R
 
-- **Requested by**: [Klaudia Prodani](mailto:k.prodani@utwente.nl)
-- **Requested in/during**: email ["Internal link to Re: [IPBES_BBA_Ch6] Call to discuss literature review for chapter 6 - financial system section?](message://%3cAM8P195MB1106792317EA53A14D8491E59083A@AM8P195MB1106.EURP195.PROD.OUTLOOK.COM%3e)
+- **Requested by**: [Tuan Nguyen](mailto:tuan.nguyen@uhasselt.be)
+- **Requested in/during**: 
 
 - **Context**:
 - **Task(s)**: Conduct literature search for Chapter 6 Finance Section. At the moment, a
 snowball search (PBES_BBA_Ch6_Fin_snowball) as well as a search term based search
 ( IPBES_BBA_Ch6_Fin_keyword) is planned.
 - **Contact point from the expert team**:
-  - [Klaudia Prodani](mailto:k.prodani@utwente.nl)
+  - [Tuan Nguyen](mailto:tuan.nguyen@uhasselt.be)
 - **Contact point from BBA tsu**:
   - [TSU BBA](mailto:tsu.bizbiodiversity@gmail.com)
 - **Contact point from data tsu**:
@@ -36,14 +36,10 @@ snowball search (PBES_BBA_Ch6_Fin_snowball) as well as a search term based searc
   - [Aidin Niamir](mailto:aidin.niamir@senckenberg.de)
 - **CC**:
   - [TSU BBA](mailto:tsu.bizbiodiversity@gmail.com)
-  - [Evonne Yiu](mailto:evonne_yiu@yahoo.co.jp)
-  - [Katie Leach](mailto:katieleach2904@hotmail.co.uk)
-  - [Katie Leach](mailto:Katie.Leach@lloydsbanking.com)
-  - [Caroline van Leenders](mailto:caroline.vanleenders@rvo.nl)
 - **Timeline and deadline**:
 - **Latest status**: Ongoing
 
-- **Github Repo**: [IPBES_BBA_Ch6_fin](https://github.com/IPBES-Data/IPBES_BBA_Ch6_fin)
+- **Github Repo**: 
 
 ## Folders
 
@@ -62,10 +58,10 @@ snowball search (PBES_BBA_Ch6_Fin_snowball) as well as a search term based searc
 
 - [x] Project created
 - [x] Initial Snowball search conducted
-- [ ] supplement references with ISBNs (Klaudia)
+- [ ] supplement references with ISBNs
 
 ## Reports
 
-- [Snowball Report](IPBES_BBA_Ch6_Fin_snowball.html)
+- [Snowball Report](IPBES_BBA_Ch5_R&R_snowball.html)
 
 <!-- - [Keyword Report](IPBES_BBA_Ch6_Fin_keyword.html) -->
