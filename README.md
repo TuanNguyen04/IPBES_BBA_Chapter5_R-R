@@ -24,9 +24,8 @@ Once finalised, the final repo will be published on Zenodo
 - **Requested in/during**: 
 
 - **Context**:
-- **Task(s)**: Conduct literature search for Chapter 6 Finance Section. At the moment, a
-snowball search (PBES_BBA_Ch6_Fin_snowball) as well as a search term based search
-( IPBES_BBA_Ch6_Fin_keyword) is planned.
+- **Task(s)**: Conduct literature search for Chapter 5 Section 5.1 Roles & Responsibilities. At the moment, a
+snowball search (PBES_BBA_Ch5_RR_snowball) is planned.
 - **Contact point from the expert team**:
   - [Tuan Nguyen](mailto:tuan.nguyen@uhasselt.be)
 - **Contact point from BBA tsu**:
